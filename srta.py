@@ -14,19 +14,11 @@ from safety_risk_utils import (
 
 class SearchNode:
     def __init__(self, sess: Sess, reward: float = -np.inf, risk_R: float = 0.0):
-        """
-        新增 risk_R: 当前路径的序列级风险 R_t^{(j)}。
-        不改变已有调用接口（原来的位置参数仍然兼容）。
-        """
         self.sess = sess
         self.reward = reward
         self.risk_R = risk_R
 
     def add(self, *tokens: int, reward=-np.inf, risk_R: Optional[float] = None) -> Self:
-        """
-        生成子节点时，可以选择传入新的 risk_R（例如本 step 更新后的 R_t^{(j)}），
-        没传的话继承父节点的 risk_R。
-        """
         if risk_R is None:
             risk_R = self.risk_R
         return type(self)(sess=self.sess.add(*tokens), reward=reward, risk_R=risk_R)
@@ -51,10 +43,10 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
         parser.add_argument('--q_batch_size', type=int, default=4, help='batch size of the Q model')
         parser.add_argument('--min_new_tokens', type=int, default=16,
                             help='minimum number of searched tokens before EOS')
-        # 添加 max_retries 参数
+
         parser.add_argument('--max_retries', type=int, default=2, help='max number of safety retries')
         parser.add_argument('--inf', type=float, default=1024., help='substitute for inf in the rewards')
-        # 新增：序列级安全剪枝的阈值（不再依赖 budget）
+
         parser.add_argument(
             '--safety_threshold',
             type=float,
@@ -70,26 +62,26 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
             args=args,
         )
 
-        # 原来的阈值拟合参数（不再使用）
+
         self.alpha_fit = 38
         self.beta_fit = 5
         self.gamma_fit = 1
         self.delta_fit = 4
 
-        # 新增：序列级风险 -> 安全分的超参（目前只用绝对项，简单起见）
-        self.safety_threshold = args.safety_threshold  # 剪枝阈值，后续你可以自己调
 
-        self.risk_kappa = 0.8      # reward logit -> safety 概率的尺度
-        self.risk_lambda_c = 0   # 集中度修正系数，先关掉
-        self.risk_C0 = 0.90         # 集中度基线，先置 0
+        self.safety_threshold = args.safety_threshold 
 
-        self.risk_rho = 0.8        # 序列 EMA 的记忆系数
-        self.risk_gamma_abs = 0.7  # 绝对风险 -> 安全分的缩放
-        self.risk_gamma_rel = 0.3  # 相对风险项关掉
+        self.risk_kappa = 0.8     
+        self.risk_lambda_c = 0   
+        self.risk_C0 = 0.90        
+
+        self.risk_rho = 0.8        
+        self.risk_gamma_abs = 0.7  
+        self.risk_gamma_rel = 0.3  
         self.risk_w_abs = 0.8
         self.risk_w_rel = 1 - self.risk_w_abs
 
-        # 从本地路径加载分词器（确保args.q_base是本地目录）
+
         q_tokenizer = AutoTokenizer.from_pretrained(
             args.q_base,
             padding_side='left',
@@ -145,10 +137,6 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
         )
 
     def get_safety_threshold(self, N: int) -> float:
-        """
-        旧版：根据 N 动态计算阈值。
-        新版：直接返回一个常数超参数（不依赖 budget），方便你后续自己调。
-        """
         return self.safety_threshold
 
     def _run_search_once(
@@ -159,13 +147,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
         base_sess_for_safe: Sess,
         safe_response_tokens: List[int],
     ) -> Tuple[Sess, List[List[SearchNode]], bool]:
-        """
-        单轮搜索 + 剪枝逻辑。
-        返回：
-          best_session: 最佳 session
-          verbose: 搜索过程中所有节点轨迹
-          pruned: 是否触发安全剪枝并直接返回安全回答
-        """
+
         nodes: List[SearchNode] = [SearchNode(sess=start_sess)]
         verbose: List[List[SearchNode]] = [nodes]
 
@@ -174,7 +156,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
             cand_indices: List[int] = []
             sess_list: List[Sess] = []
 
-            # 1. 收集当前还没 EOS 的路径
+
             for idx, node in enumerate(nodes):
                 if policy_model.is_eos(node.sess.last_output_token):
                     next_nodes.append(node)
@@ -192,7 +174,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                 cand_policies = cand_policies.softmax(dim=-1)
                 cand_mask = (cand_policies.cumsum(dim=-1) - cand_policies < self.top_p)
 
-                # 使用 as_tensor 避免不必要的 CPU -> GPU 拷贝
+
                 cand_indices_tensor = torch.as_tensor(
                     cand_indices,
                     dtype=torch.long,
@@ -200,7 +182,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                 )[:, None]
                 cand_indices_expanded = cand_indices_tensor.expand(-1, cand_tokens.shape[-1])
 
-                # 3. Q 模型 reward -> 与 cand_tokens 对齐
+
                 cand_rewards = self.call_aid(
                     aid_id=self.q_id,
                     sess_list=sess_list,
@@ -209,10 +191,9 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                 cand_rewards[:, self.unseen_mask] = -self.inf
                 cand_rewards = cand_rewards.gather(dim=-1, index=cand_tokens)
 
-                # ---------- 新增：序列級风险 + 安全评分计算 ----------
-                # 仅对当前仍可扩展的路径（cand_indices 对应的路径）计算
+
                 if cand_policies.numel() > 0:
-                    # 上一 step 的 R_{t-1}^{(j)}
+
                     prev_R_list = [nodes[idx].risk_R for idx in cand_indices]
                     prev_R = torch.as_tensor(
                         prev_R_list,
@@ -220,7 +201,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                         dtype=cand_policies.dtype,
                     )
 
-                    # 单步风险 r_t^{(j)}
+
                     step_risk = compute_step_risk(
                         probs=cand_policies,
                         reward_logits=cand_rewards,
@@ -230,14 +211,14 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                         C0=self.risk_C0,
                     )
 
-                    # 序列級风险 R_t^{(j)}
+
                     new_R = update_sequence_risk(
                         prev_R=prev_R,
                         step_risk=step_risk,
                         rho=self.risk_rho,
                     )
 
-                    # 把 R_t^{(j)} 映射成安全分 S_t^{(j)} ∈ (0,1)
+     
                     safe_scores = compute_safe_scores(
                         R=new_R,
                         gamma_abs=self.risk_gamma_abs,
@@ -246,7 +227,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                         w_rel=self.risk_w_rel,
                     )
 
-                    # 如果所有路径的安全分都低于阈值，则触发整体安全剪枝，直接返回安全回答
+
                     if torch.all(safe_scores < self.safety_threshold):
                         safe_node = SearchNode(
                             sess=base_sess_for_safe.add(*safe_response_tokens),
@@ -259,7 +240,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                         )
                         return safe_node.sess, verbose, True
 
-                    # 建立 {原 nodes 索引 -> 新 R_t^{(j)}} 的映射，后面扩展子节点时继承
+
                     new_R_per_index = {
                         idx: R_val.item()
                         for idx, R_val in zip(cand_indices, new_R)
@@ -267,7 +248,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                 else:
                     new_R_per_index = {}
 
-                # ---------- 继续原有 top-p + top-k 搜索逻辑 ----------
+
                 filtered_indices = cand_indices_expanded[cand_mask]
                 filtered_tokens = cand_tokens[cand_mask]
                 filtered_rewards = cand_rewards[cand_mask]
@@ -286,7 +267,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                         top_rewards
                     ):
                         node = nodes[idx]
-                        # 使用该路径的最新 R_t^{(j)}，如果没算到就继承原 risk_R
+
                         risk_R = new_R_per_index.get(idx, node.risk_R)
                         next_nodes.append(
                             node.add(
@@ -298,7 +279,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
 
                     next_nodes.sort(key=lambda node: node.reward, reverse=True)
                     del next_nodes[self.budget:]
-                # else: 没有可扩展的候选，直接用 next_nodes（可能只有结束节点）
+
 
             nodes = next_nodes
             verbose.append(nodes)
@@ -313,13 +294,8 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
         """
         Given an initial session, a policy model, a reward model, and a maximum number of new tokens,
         generate a sequence of sessions with the highest reward.
-
-        重构版本：
-        - 重试次数由 max_retries 控制
-        - 搜索逻辑抽到 _run_search_once，不再重复两轮一样的代码
-        - 剪枝在第一次推理时就启用
         """
-        base_sess = sess  # 用于安全剪枝时追加安全回答
+        base_sess = sess  
 
         check_text = (
             "Waiting to check output safety, safety guidelines: reject any harmful requests. "
@@ -338,7 +314,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
         safe_response_text = 'Due to security policy, I cannot answer this question'
         safe_response_tokens = policy_model.tokenizer.encode(safe_response_text, add_special_tokens=False)
 
-        # ---------- 第一次搜索（已启用剪枝） ----------
+
         best_session, verbose, pruned = self._run_search_once(
             policy_model=policy_model,
             start_sess=sess,
@@ -348,17 +324,17 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
         )
 
         if pruned:
-            # 已经返回安全回答，直接结束
+
             return best_session, verbose
 
         eval_reward = reward_model(sess_list=[best_session], src_model=policy_model).item()
 
-        # 如果满足安全要求，直接返回
+
         if eval_reward >= -10000:
             print("Satisfy security requirements and return directly. The current eval_reward is:", eval_reward)
             return best_session, verbose
 
-        # ---------- 安全重试逻辑（统一封装，次数由 max_retries 控制） ----------
+
         print(
             "The security requirements are not met. Start safety retries. "
             "Initial eval_reward is:", eval_reward
@@ -367,26 +343,26 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
         verbose_all = verbose
         last_best_session = best_session
 
-        # 每一轮重试前追加的检查提示文本
+
         check_token_sequences = [check_tokens, second_check_tokens]
 
         for retry_idx in range(self.max_retries):
-            # 选择本轮使用的检查提示 token 序列
+
             if retry_idx < len(check_token_sequences):
                 extra_tokens = check_token_sequences[retry_idx]
             else:
-                # 超过两轮就复用最后一条检查提示
+
                 extra_tokens = check_token_sequences[-1]
 
             print(f"Performing safety retry {retry_idx + 1} ...")
 
-            # 基于上一轮 best_session 追加检查提示
+
             current_node = SearchNode(sess=last_best_session)
             for token in extra_tokens:
                 current_node = current_node.add(token, reward=current_node.reward)
             new_sess = current_node.sess
 
-            # 运行一轮搜索（同样启用剪枝）
+
             best_session_retry, verbose_retry, pruned = self._run_search_once(
                 policy_model=policy_model,
                 start_sess=new_sess,
@@ -398,7 +374,7 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
             verbose_all = verbose_all + verbose_retry
 
             if pruned:
-                # 剪枝直接返回安全提示
+
                 return best_session_retry, verbose_all
 
             eval_reward_retry = reward_model(
@@ -412,13 +388,14 @@ class Gen(AidedGen):  # Safe Multifurcation (q is the MRM)
                 print(f"The safety requirements are satisfied after retry {retry_idx + 1}, returning result.")
                 return best_session_retry, verbose_all
 
-            # 未通过安全要求，更新 last_best_session 继续下一轮
+
             last_best_session = best_session_retry
 
-        # 所有重试都未达标，返回最后一轮的结果（保持原逻辑：第二次重算后无论好坏都返回）
+
         print("All safety retries finished. Return the last retry result.")
         return last_best_session, verbose_all
 
 
 if __name__ == '__main__':
     test(Gen)
+
