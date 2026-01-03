@@ -55,4 +55,16 @@ python measure_toxicity.py --pkl_dir /data/saffron/outputs/GCG_Vicuna/GCGVicuna~
 ```bash
 python fpr.py
 ```
+### 4. Refer to the following instructions to perform the baseline experiments：
+```bash
+cd baseline/smooth-llm
 
+python main.py \
+    --results_dir ./results/vicuna_GCG \
+    --target_model vicuna \
+    --attack GCG \
+    --attack_logfile /baseline/smooth-llm/data/GCG/AutoDAN_vicuna.json \
+    --smoothllm_pert_type RandomSwapPerturbation \
+    --smoothllm_pert_pct 10 \
+    --smoothllm_num_copies 5
+```
