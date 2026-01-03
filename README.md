@@ -68,3 +68,9 @@ python main.py \
     --smoothllm_pert_pct 10 \
     --smoothllm_num_copies 5
 ```
+
+```bash
+cd baseline/Gradient-Cuff
+
+python main.py --model_id /path_to/vicuna-7b-v1.5 --user_query_path /baseline/Gradient-Cuff/attack_data/vicuna_AutoDAN.json --save_path outputs/vicuna_AutoDAN.json --batch_size 20 --device cuda:0
+```
