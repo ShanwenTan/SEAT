@@ -1,6 +1,6 @@
 # SRTA
 
-The **SRTA** framework is used to address the security issues of large language models (LLMs) in extended reasoning and achieves dynamic security alignment during testing.
+The **SRTA** framework is used to address security issues in large language models (LLMs) during extended reasoning processes, and achieves dynamic safety alignment and effectively mitigates over-rejection phenomena through sequence-level risk estimation during testing.
 
 ---
 
