@@ -8,7 +8,7 @@ The **SRTA** framework is used to address security issues in large language mode
 
 You need to download the following models and configure the local paths in the corresponding `inc/models.py` and `inc/data.py` respectively.
 
-* **meta-llama/Meta-Llama-3-8B-Instruct**: [https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct)
+* **meta-llama/Llama-2-7b-chat-hf**: (https://huggingface.co/meta-llama/Llama-2-7b-chat-hf)
 * **mistralai/Mistral-7B-Instruct-v0.3**: [https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3)
 * **ModelCloud/Llama3.2-1B-Instruct**: [https://huggingface.co/ModelCloud/Llama3.2-1B-Instruct](https://huggingface.co/ModelCloud/Llama3.2-1B-Instruct)
 * **meta-llama/Llama-Guard-3-1B**: [https://huggingface.co/meta-llama/Llama-Guard-3-1B](https://huggingface.co/meta-llama/Llama-Guard-3-1B)
