@@ -36,3 +36,18 @@ We recommend the following process for conducting experiments:
 
 ```bash
 python srta.py --data GCGVicuna --policy Vicuna_7B_Inst --reward LlamaGuard3_1B --judge LlamaGuard3_1B --env PrefillAtk --save_dir outputs/GCG_Vicuna --budget 4
+
+### 2. Execute the following code to measure the toxicity of the output text:
+
+(Note: The policy model here must be consistent with the policy model used to measure ASR)
+
+```bash
+python measure_toxicity.py --pkl_dir /path/to/pkl_files --policy_model /path/to/policy_model --safety_model /path/to/google/shieldgemma-2b --output path/results.json
+
+The following is an example of measuring toxicity code:
+
+```bash
+python measure_toxicity.py --pkl_dir /data/saffron/outputs/GCG_Vicuna/GCGVicuna~trade024tp0.8/data/saffron/models/Saffron-1-1B~PrefillAtk10~Vicuna_7B_Inst~LlamaGuard3_1B~LlamaGuard3_1B --policy_model path/Vicuna_7B_Inst --safety_model path/shieldgemma-2b --output path/results.json
+
+
+
