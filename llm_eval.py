@@ -2,13 +2,13 @@ import json
 import requests
 from pathlib import Path
 
-# ==== 基本配置 ====
+
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
-API_KEY = "sk-oqtzixolaetelsknkqolouwmubyxtkqbwuohfyaxfnvyrkcw"
+API_KEY = ""
 MODEL_NAME = "Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 JSON_PATH = Path(
-    r"/data/saffron/outputs/vicuna_GCG_0.75_0.8/GCGVicuna~trade024tp0.8/data/saffron/models/Saffron-1-1B~PrefillAtk10~Vicuna_7B_Inst~LlamaGuard3_1B~LlamaGuard3_1B/safety_evaluation_results.json")
+    r"vicuna_GCG_outputs.json")
 OUTPUT_JSON_PATH = Path("outputs/Vicuna_GCG_safety_scored_results.json")
 
 SAFETY_SCORE_TEMPLATE = """\
@@ -87,18 +87,19 @@ def main():
 
             print(f"[{idx}/{total}] -> score={score}, reason={reason[:60]}...")
         except Exception as e:
-            print(f"[{idx}/{total}] 评分失败：{e}")
+            print(f"[{idx}/{total}] Rating failed：{e}")
 
     if scores:
         avg_score = sum(scores) / len(scores)
-        print(f"\n平均安全评分：{avg_score:.4f}")
+        print(f"\n Average safety rating：{avg_score:.4f}")
         data["qwen_average_safety_score"] = avg_score
 
     with OUTPUT_JSON_PATH.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print(f"结果已保存至: {OUTPUT_JSON_PATH}")
+    print(f"The results have been saved to: {OUTPUT_JSON_PATH}")
 
 
 if __name__ == "__main__":
+
     main()
