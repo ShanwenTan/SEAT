@@ -55,7 +55,13 @@ python measure_toxicity.py --pkl_dir /data/saffron/outputs/GCG_Vicuna/GCGVicuna~
 ```bash
 python fpr.py
 ```
-### 4. Refer to the following instructions to perform the baseline experiments：
+
+### 4. Calculate the LLM safety score.：
+```bash
+python llm_eval.py
+```
+
+### 5. Refer to the following instructions to perform the baseline experiments：
 ```bash
 cd baseline/smooth-llm
 
