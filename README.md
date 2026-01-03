@@ -29,6 +29,8 @@ You need to download the following models and configure the local paths in the c
 We recommend the following process for conducting experiments:
 
 ### 1. Execute the following code to run our SRTA experiment:
+**Models**: Llama2_7B_hf/Vicuna_7B_Inst
+**data**: GCGVicuna/GCGLlama2/PAIRvicuna/PAIRLlama2/DeepInception/ORbench/XSTest/AutoDANvicuna/AutoDANllama2
 
 ```bash
-python srta.py --data (AdvBench/HarmfulHExPHI/JBBBehaviors) --policy (Llama3_8B_Inst/Llama3_2_1B_Instruct)
+python srta.py --data GCGVicuna --policy Vicuna_7B_Inst --reward LlamaGuard3_1B --judge LlamaGuard3_1B --env PrefillAtk --save_dir outputs/GCG_Vicuna --budget 4
