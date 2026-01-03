@@ -36,6 +36,7 @@ We recommend the following process for conducting experiments:
 
 ```bash
 python srta.py --data GCGVicuna --policy Vicuna_7B_Inst --reward LlamaGuard3_1B --judge LlamaGuard3_1B --env PrefillAtk --save_dir outputs/GCG_Vicuna --budget 4
+```
 
 ### 2. Execute the following code to measure the toxicity of the output text:
 
