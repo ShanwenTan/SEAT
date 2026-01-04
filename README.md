@@ -28,7 +28,7 @@ You need to download the following models and configure the local paths in the c
 
 We recommend the following process for conducting experiments:
 
-### 1. Execute the following code to run our SRTA experiment:
+### 1. Execute the following code to run our SEAT experiment:
 
 **Models**: Llama2_7B_hf/Vicuna_7B_Inst
 
