@@ -1,6 +1,6 @@
-# SRTA
+# SEAT
 
-The **SRTA** framework is used to address security issues in large language models (LLMs) during extended reasoning processes, and achieves dynamic safety alignment and effectively mitigates over-rejection phenomena through sequence-level risk estimation during testing.
+The **SEAT** framework is used to address security issues in large language models (LLMs) during extended reasoning processes, and achieves dynamic safety alignment and effectively mitigates over-rejection phenomena through sequence-level risk estimation during testing.
 
 ---
 
@@ -35,7 +35,7 @@ We recommend the following process for conducting experiments:
 **data**: GCGVicuna/GCGLlama2/PAIRvicuna/PAIRLlama2/DeepInception/ORbench/XSTest/AutoDANvicuna/AutoDANllama2
 
 ```bash
-python seta.py --data GCGVicuna --policy Vicuna_7B_Inst --reward LlamaGuard3_1B --judge LlamaGuard3_1B --env PrefillAtk --save_dir outputs/GCG_Vicuna --budget 4
+python seat.py --data GCGVicuna --policy Vicuna_7B_Inst --reward LlamaGuard3_1B --judge LlamaGuard3_1B --env PrefillAtk --save_dir outputs/GCG_Vicuna --budget 4
 ```
 
 ### 2. Execute the following code to measure the toxicity of the output text:
