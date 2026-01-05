@@ -80,3 +80,8 @@ cd baseline/Gradient-Cuff
 
 python main.py --model_id /path_to/vicuna-7b-v1.5 --user_query_path /baseline/Gradient-Cuff/attack_data/vicuna_AutoDAN.json --save_path outputs/vicuna_AutoDAN.json --batch_size 20 --device cuda:0
 ```
+
+```bash
+python SCANS_vicuna.py \
+    --load_testdata path/converted_vicuna_PAIR.json
+```
