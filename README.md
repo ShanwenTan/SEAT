@@ -85,3 +85,7 @@ python main.py --model_id /path_to/vicuna-7b-v1.5 --user_query_path /baseline/Gr
 python SCANS_vicuna.py \
     --load_testdata path/converted_vicuna_PAIR.json
 ```
+
+## Contact
+
+If you have any questions or would like access to the original data, please contact me at [2023141010009@stu.scu.edu.cn](mailto:2023141010009@stu.scu.edu.cn).
