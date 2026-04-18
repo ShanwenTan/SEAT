@@ -20,7 +20,7 @@ You need to download the following models and configure the local paths in the c
 * `baseline/` : Stores the baseline code for test-time security alignment methods.
 * `data/` : Stores jailbreak attack datasets and neutral datasets.
 * `requirements.txt` : Project dependency library list.
-* `srta.py` : The main code of the SRTA framework, responsible for starting the core process.
+* `seat.py` : The main code of the SEAT framework, responsible for starting the core process.
 
 ---
 
